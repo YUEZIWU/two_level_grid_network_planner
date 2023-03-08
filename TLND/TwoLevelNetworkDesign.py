@@ -697,7 +697,7 @@ def main(cur_file):
         print("Generating Dictionaries")
         nodesByClusterID, clusterByNode, nodes, centers, LVCostDict ,node_weights_output = generateDictsFromShp(cur_file,
                                                                                            outputDir)
-        
+
         node_weights_output.to_csv(os.path.join(outputDir,'node_weights.csv'))
         print("Run function starts...")
         totalCost, tree, centers, nodesByClusterID, LVCostSum = run(centers, nodesByClusterID, clusterByNode,
@@ -767,6 +767,7 @@ def main(cur_file):
 if __name__ == "__main__":
 
     # my_file = '../../yuezi/polygonized_cambildge_preds_min_5ha.csv'
-    my_shp = '../../yuezi/polygonized_cambildge_preds_min_5ha/polygonized_cambildge_preds_min_5ha.shp'
+    # my_shp = '../../yuezi/polygonized_cambildge_preds_min_5ha/polygonized_cambildge_preds_min_5ha.shp'
+    my_shp = '/Users/yuezi/Documents/GitHub/Africa-load-model/assumptions & material/ethiopia/shapefile/irrig_circle_centroids.shp'
     # convert_to_utm_shp(my_file,my_shp,'epsg:32637')
     main(my_shp)
