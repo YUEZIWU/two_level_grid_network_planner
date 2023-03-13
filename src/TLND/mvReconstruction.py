@@ -24,7 +24,7 @@ def buildAssocDict(segments):
     for seg in segments:
         node1, node2 = seg.getNodes()
         for nodeID in [node1.getID(), node2.getID()]:
-            if segList.has_key(nodeID):
+            if nodeID in segList:
                 segList[nodeID].append(seg)
             else:
                 segList[nodeID] = [seg]
@@ -67,9 +67,14 @@ def primsAlg(segments, numNodes, firstNodeID, nodeDict):
 
     leastWeight = None
     for seg in segs:
-        if (seg.getWeight() < leastWeight) or (leastWeight == None):
+        if leastWeight == None:
             leastWeight = seg.getWeight()
             firstSeg = seg
+        else:
+            if (seg.getWeight() < leastWeight):
+                leastWeight = seg.getWeight()
+                firstSeg = seg
+
     tree.addSeg(firstSeg)
 
     # Starter to algorithm
@@ -227,10 +232,11 @@ def mv_correction_option_b(cur_paths):
                         MVCost = MVLength * MV_per_meter_cost
                         MVperstruct = MVLength / float(num_structs)
                         recomputed_mv[cur_folder] = MVperstruct
-
-    with open('../../recomputed_mv.pck', 'w') as hdl:
+    print(recomputed_mv)
+    with open('/Users/yuezi/Library/CloudStorage/GoogleDrive-yw3054@columbia.edu/My Drive/LAB/Africa-Model/Uganda_network_planning/district_split/sironkoP1/recomputed_mv.pck', 'wb') as hdl:
         pickle.dump(recomputed_mv, hdl, protocol=pickle.HIGHEST_PROTOCOL)
 
+
 if __name__ == "__main__":
-    grid_paths = ['../../structures_in_missing_wards_20m/','../../wards_for_swarm/', '../../wards_for_habanero']
+    grid_paths = ['/Users/yuezi/Library/CloudStorage/GoogleDrive-yw3054@columbia.edu/My Drive/LAB/Africa-Model/Uganda_network_planning/district_split/sironkoP1']
     mv_correction_option_b(grid_paths)

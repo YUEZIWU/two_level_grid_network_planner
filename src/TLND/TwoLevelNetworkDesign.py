@@ -666,15 +666,15 @@ def is_notvisited(grid_file):
 #     radius = int(np.ceil((((bbox[2] - bbox[0]) ** 2) + ((bbox[3] - bbox[1]) ** 2)) ** 0.5) + buffer_r)
 #     return radius
 
-def convert_to_utm_shp(latlon_shp,output_file ,epsg = 'epsg:32637'):
-    df = pd.read_csv(latlon_shp)
-    df['LAT'] = df.centroid.apply(lambda x: shapely.wkt.loads(x).y)
-    df['LON'] = df.centroid.apply(lambda x: shapely.wkt.loads(x).x)
-    geo_df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.LON, df.LAT))
-    geo_df.crs= {'init': 'epsg:4326'}
-    utm_df = geo_df.to_crs({'init':epsg})
-    utm_df.to_file(output_file)
-    return True
+# def convert_to_utm_shp(latlon_shp,output_file ,epsg = 'epsg:32637'):
+#     df = pd.read_csv(latlon_shp)
+#     df['LAT'] = df.centroid.apply(lambda x: shapely.wkt.loads(x).y)
+#     df['LON'] = df.centroid.apply(lambda x: shapely.wkt.loads(x).x)
+#     geo_df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.LON, df.LAT))
+#     geo_df.crs= {'init': 'epsg:4326'}
+#     utm_df = geo_df.to_crs({'init':epsg})
+#     utm_df.to_file(output_file)
+#     return True
 
 
 def main(cur_file):
@@ -764,9 +764,9 @@ def main(cur_file):
 
 
 if __name__ == "__main__":
-
-    # my_file = '../../yuezi/polygonized_cambildge_preds_min_5ha.csv'
-    # my_shp = '../../yuezi/polygonized_cambildge_preds_min_5ha/polygonized_cambildge_preds_min_5ha.shp'
-    my_shp = '/Users/yuezi/Documents/GitHub/Africa-load-model/assumptions & material/ethiopia/shapefile/irrig_circle_centroids.shp'
-    # convert_to_utm_shp(my_file,my_shp,'epsg:32637')
-    main(my_shp)
+    district_name = 'abim'
+    my_shps_folder = f'../../data/district_split_results/{district_name}'
+    regions = os.listdir(my_shps_folder)
+    for subgrid in regions:
+        my_shp = f'../../data/district_split_results/{district_name}/{subgrid}/{subgrid}.shp'
+        main(my_shp)

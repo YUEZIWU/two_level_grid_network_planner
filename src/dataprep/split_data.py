@@ -2,19 +2,24 @@
 THIS SCRIPT DOES THE FOLLOWING:
     1) Picks a specific ward and gets all the structures in ward
     2) Saves them to pickle
+
+*** yuezi updated for uganda network planning March 08, 2023
 '''
 
-import pickle
+
+
+# import pickle
+# import fiona
+# from fiona.crs import from_epsg
+# import simone_agg_clustering as ac
+# from rtree import index
 import re
 import os
 import sys
-import fiona
 import pandas as pd
-from shapely.geometry import Polygon, Point, mapping
-from rtree import index
-from fiona.crs import from_epsg
+from shapely.geometry import Point
 import numpy as np
-import simone_agg_clustering as ac
+import geopandas as gpd
 
 
 def cleanNames(name):
@@ -121,9 +126,11 @@ def make_savetoken(srcpath, idx):
     return savetoken
 
 
-def make_save_dir(ward, county):
-    token = ward + '_' + county
-    outputDir = '../../structures_in_missing_wards_20m/' + token
+def make_save_dir(district):
+    if not os.path.exists('../../data/district_split_results'):
+        os.mkdir('../../data/district_split_results')
+    token = district
+    outputDir = '../../data/district_split_results/' + token
     if not os.path.exists(outputDir):
         os.mkdir(outputDir)
     savepath = outputDir + '/'
@@ -131,16 +138,11 @@ def make_save_dir(ward, county):
 
 
 def make_shp(savepath, structs):
-    myschema = {'geometry': 'Point',
-                'properties': {
-                    'utm_x': 'float',
-                    'utm_y': 'float'}}
-
-    with fiona.open(savepath, 'w', crs=from_epsg(4326), driver='ESRI Shapefile', schema=myschema) as output:
-        for idx, row in structs.iterrows():
-            point = Point(float(row['utm_x']), float(row['utm_y']))
-            prop = {'utm_x': row['utm_x'], 'utm_y': row['utm_y']}
-            output.write({'geometry': mapping(point), 'properties': prop})
+    geometry = [Point(xy) for xy in zip(structs.utm_x, structs.utm_y)]
+    structs_geo = gpd.GeoDataFrame(structs, geometry=geometry)
+    structs_geo = structs_geo.set_crs('epsg:32636')
+    structs_geo = structs_geo[['geometry']]
+    structs_geo.to_file(savepath, driver='ESRI Shapefile')
 
 
 def get_extent(structures):
@@ -172,34 +174,27 @@ def recursive_split(start_bbox, src,numStructures,clusterSize,radius):
     stack, valid = [start_bbox], []
     while stack:
         bbox = stack.pop()
-        # print(bbox)
         cur_df = make_df(src, bbox)
-        # max_nodes = ac.get_max_nodes_in_cluster(cur_df)
-        print('Number of Structures: ', cur_df.shape[0])
         if cur_df.shape[0] < numStructures:
             if cur_df.shape[0] <= clusterSize:
                 valid.append(bbox)
             else:
-                max_nodes = ac.get_max_nodes_in_cluster(cur_df)
-                if max_nodes <= clusterSize:
+                y_step = (bbox[-1] - bbox[1]) / 2.0
+                x_step = (bbox[2] - bbox[0]) / 2.0
+                cur_radius = int(((y_step ** 2) + (x_step ** 2)) ** 0.5)
+                if cur_radius <= radius:
                     valid.append(bbox)
                 else:
-                    y_step = (bbox[-1] - bbox[1]) / 2.0
-                    x_step = (bbox[2] - bbox[0]) / 2.0
-                    cur_radius = int(((y_step ** 2) + (x_step ** 2)) ** 0.5)
-                    if cur_radius <= radius:
-                        valid.append(bbox)
-                    else:
-                        for x in np.arange(bbox[0], bbox[2], x_step):
-                            for y in np.arange(bbox[1], bbox[-1], y_step):
-                                sub_bbox = x, y, x + x_step, y + y_step
-                                sub_bbox = [int(np.floor(b)) for b in sub_bbox]
-                                stack.append(sub_bbox)
+                    for x in np.arange(bbox[0], bbox[2], x_step):
+                        for y in np.arange(bbox[1], bbox[-1], y_step):
+                            sub_bbox = x, y, x + x_step, y + y_step
+                            sub_bbox = [int(np.floor(b)) for b in sub_bbox]
+                            stack.append(sub_bbox)
         else:
             y_step = (bbox[-1] - bbox[1]) / 2.0
             x_step = (bbox[2] - bbox[0]) / 2.0
             cur_radius = int(((y_step ** 2) + (x_step ** 2)) ** 0.5)
-            if cur_radius <= 700:
+            if cur_radius <= radius:
                 valid.append(bbox)
             else:
                 for x in np.arange(bbox[0], bbox[2], x_step):
@@ -207,7 +202,6 @@ def recursive_split(start_bbox, src,numStructures,clusterSize,radius):
                         sub_bbox = x, y, x + x_step, y + y_step
                         sub_bbox = [int(np.floor(b)) for b in sub_bbox]
                         stack.append(sub_bbox)
-        print('Stack size: ', len(stack))
     return valid
 
 
@@ -239,54 +233,50 @@ def split_by_max_nodes(start_bbox, structures):
 def save_splits(splits, structures, ward_dir):
     print('Number of Acceptable extents:', len(splits))
     rand_ext = np.random.randint(low=0, high=len(splits))
-    print('Sample acceptable extent:', splits[rand_ext])
+    # print('Sample acceptable extent:', splits[rand_ext])
     print('Starting the make shapefile process')
     idx = 0
     for pos, split in enumerate(splits):
         cur_df = make_df(structures, split)
         if not cur_df.empty:
             savetoken = make_savetoken(ward_dir, idx)
-        make_shp(savetoken, cur_df)
-        idx += 1
+            make_shp(savetoken, cur_df)
+            idx += 1
 
 
-def main(ward, county,numStructures,clusterSize,radius):
-    # levelDir = '../../structures_in_wards/'
-    merged_csv_folder = '../../ward_merged_points_ratio2_20meters/'
-    # merged_csv_folder = '../../missingward_merged_points_ratio2_20meters/'
-    merged_csv_files = os.listdir(merged_csv_folder)
-    print('Retrieving structures in bounding rectangles for:', ward, county)
-    is_merged = is_ward_merged(ward, county, merged_csv_files)
-    if is_merged:
-        correct_file = [f for f in merged_csv_files if (ward in f) and (county in f)][0]
-        all_structs = pd.read_csv(os.path.join(merged_csv_folder, correct_file), index_col=False)
-        all_structs.columns = ['utm_x', 'utm_y', 'num_structures_in_cluster', 'area', 'population']
-    else:
-        # correct_file = "../../wards_csv_20m/" + ward + "_" + county + "_.pck"
-        unmerged_files = os.listdir("../../missingwards_csv_20m/")
-        for cur_file in unmerged_files:
-            tokens = cur_file.split('/')[-1].split('_')
-            if (tokens[0].lower() == ward.lower()) and (tokens[1].lower() == county.lower()):
-                correct_file = os.path.join("../../missingwards_csv_20m/",cur_file)
+def geojson_to_csv_table(geo_file):
+    output = geo_file
+    output.index=range(len(geo_file))
+    output = output.assign(utm_x=output.loc[:, 'geometry'].x)
+    output = output.assign(utm_y=output.loc[:, 'geometry'].y)
+    output = output.drop(columns='geometry')
+    return output
 
-        all_structs = pd.read_pickle(correct_file)
-    if not all_structs.empty:
-        try:
-            save_dir = make_save_dir(ward, county)
-            bbox = get_extent(all_structs)
-            bbox = [int(np.floor(b)) for b in bbox]
-            valid_splits = recursive_split(bbox, all_structs,numStructures,clusterSize,radius)
-            save_splits(valid_splits, all_structs, save_dir)
-        except Exception as err:
-            print(err)
-    else:
-        print('No structures found for ', ward, county)
+
+def main(merged_structures_folder,numStructures,clusterSize,radius):
+    merged_geojson_files = os.listdir(merged_structures_folder)
+    for merged_geojson in merged_geojson_files:
+        district = merged_geojson.split('_')[0]
+        print(f'{district} splitting running')
+        all_structs_geo = gpd.read_file(os.path.join(merged_structures_folder, merged_geojson))
+        all_structs = geojson_to_csv_table(all_structs_geo)
+
+        if not all_structs.empty:
+            try:
+                save_dir = make_save_dir(district)
+                bbox = get_extent(all_structs)
+                bbox = [int(np.floor(b)) for b in bbox]
+                valid_splits = recursive_split(bbox, all_structs,numStructures,clusterSize,radius)
+                save_splits(valid_splits, all_structs, save_dir)
+            except Exception as err:
+                print(err)
+        else:
+            print('No structures found for ', district)
 
 
 if __name__ == '__main__':
-    ward = "YimboWest"
-    county = "Siaya"
+    merged_structures_folder = '../../data/merged_structures_geojson'
     numStructures = 3000
-    clusterSize = 300
+    clusterSize = 1000 #300
     radius = 700
-    main(ward, county)
+    main(merged_structures_folder,numStructures,clusterSize,radius)
