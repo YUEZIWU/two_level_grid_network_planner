@@ -764,9 +764,12 @@ def main(cur_file):
 
 
 if __name__ == "__main__":
-    district_name = 'abim'
-    my_shps_folder = f'../../data/district_split_results/{district_name}'
-    regions = os.listdir(my_shps_folder)
-    for subgrid in regions:
-        my_shp = f'../../data/district_split_results/{district_name}/{subgrid}/{subgrid}.shp'
-        main(my_shp)
+    # district_name = 'abim'
+    # my_shps_folder = f'../../data/district_split_results/{district_name}'
+    # regions = os.listdir(my_shps_folder)
+    # for subgrid in regions:
+    #     my_shp = f'../../data/district_split_results/{district_name}/{subgrid}/{subgrid}.shp'
+    #     main(my_shp)
+
+    my_shp = '../../data/tests/subgrid_10.shp'
+    main(my_shp)
