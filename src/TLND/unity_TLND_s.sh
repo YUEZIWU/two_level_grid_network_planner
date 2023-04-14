@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=TLND # Job name
 #SBATCH --mail-type=END,FAIL # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=amisiko@umass.edu
+#SBATCH --mail-user=yw3054@columbia.edu
 #SBATCH --partition=cpu-long
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -11,4 +11,4 @@
 #SBATCH --output=TLND_%A.log
 
 source ~/uganda_network/network_design_env/bin/activate
-python unity_TwoLevelNetworkDesign.py
+python TwoLevelNetworkDesign.py
