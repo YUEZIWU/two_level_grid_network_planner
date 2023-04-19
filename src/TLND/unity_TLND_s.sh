@@ -10,5 +10,6 @@
 #SBATCH -t 01:00:00  # Job time limit
 #SBATCH --output=TLND_%A.log
 
-source ~/uganda_network/network_design_env/bin/activate
+conda activate base
+conda activate tlnd
 python TwoLevelNetworkDesign.py
