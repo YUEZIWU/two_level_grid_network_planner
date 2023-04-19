@@ -771,5 +771,5 @@ if __name__ == "__main__":
     #     my_shp = f'../../data/district_split_results/{district_name}/{subgrid}/{subgrid}.shp'
     #     main(my_shp)
 
-    my_shp = '../../data/tests/subgrid_10.shp'
+    my_shp = '../../data/tests/nodes_for_netdesign.shp'
     main(my_shp)
